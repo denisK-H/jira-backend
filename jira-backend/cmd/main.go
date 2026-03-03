@@ -16,7 +16,7 @@ import (
 // Инициализация сервера, DI зависимостей и регистрация роутов (TODO: конфиг, таймауты, логирование)
 func main() {
 
-	dsn := "postgres://pguser:pgpwd@localhost:5432/testdb?sslmode=disable"
+	dsn := "postgres://pguser:pgpwd@localhost:5432/testdb?sslmode=disable" // TODO: переиспользовать из dbConnection.go
 
 	writeDB, _ := sql.Open("postgres", dsn)
 	readDB, _ := sql.Open("postgres", dsn)

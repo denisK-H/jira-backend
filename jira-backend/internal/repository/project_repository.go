@@ -25,7 +25,7 @@ func (r *ProjectRepository) GetByID(ctx context.Context, id int64) (*models.Proj
 }
 
 func (r *ProjectRepository) Delete(ctx context.Context, id int64) error {
-	_, err := r.writeDB.ExecContext(ctx, "DELETE FROM project WHERE jira_id=$1", id)
+	_, err := r.writeDB.ExecContext(ctx, "DELETE FROM project WHERE jira_id=$1", id) // TODO: нормально переделать с контекстом и транзакцией
 	return err
 }
 
