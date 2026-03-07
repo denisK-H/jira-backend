@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	logDirPerm = 0755
+	logDirPerm  = 0755
 	logFilePerm = 0644
 )
 
@@ -21,7 +21,7 @@ type multiWriterHook struct {
 }
 
 func (h *multiWriterHook) Levels() []logrus.Level {
-	return logrus.Level{
+	return []logrus.Level{
 		logrus.WarnLevel,
 		logrus.ErrorLevel,
 		logrus.FatalLevel,
@@ -48,7 +48,12 @@ func NewLogger() *logrus.Logger {
 		panic(fmt.Sprintf("create logs dir: %v", err))
 	}
 
-	allFile, err := os.OpenFile("logs/logs.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, logFilePerm,)
+	allFile, err := os.OpenFile("logs/logs.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, logFilePerm)
+	if err != nil {
+		panic(fmt.Sprintf("open err_logs.log file: %v", err))
+	}
+
+	errFile, err := os.OpenFile("logs/err_logs.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, logFilePerm)
 	if err != nil {
 		panic(fmt.Sprintf("open err_logs.log file: %v", err))
 	}
@@ -56,9 +61,9 @@ func NewLogger() *logrus.Logger {
 	formatter := &logrus.JSONFormatter{
 		TimestampFormat: time.RFC3339,
 		FieldMap: logrus.FieldMap{
-			logrus.FieldKeyTime: "time",
+			logrus.FieldKeyTime:  "time",
 			logrus.FieldKeyLevel: "level",
-			logrus.FieldKeyMsg: "msg"
+			logrus.FieldKeyMsg:   "msg",
 		},
 	}
 
@@ -69,7 +74,7 @@ func NewLogger() *logrus.Logger {
 	log.SetOutput(allFile)
 
 	log.AddHook(&multiWriterHook{
-		writers: []io.Writer{errFile, os.Stdout},
+		writers:   []io.Writer{errFile, os.Stdout},
 		formatter: formatter,
 	})
 	return log

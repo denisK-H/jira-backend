@@ -53,7 +53,7 @@ func (c *JiraClient) doRequest(ctx context.Context, url string, target interface
 		if err != nil {
 			return fmt.Errorf("create request: %w", err)
 		}
-		req.Header.Set("Accept", "application/json")
+		request.Header.Set("Accept", "application/json")
 
 		resp, err := c.httpClient.Do(request)
 		if err != nil {

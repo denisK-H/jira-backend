@@ -3,7 +3,7 @@ package connector
 type JiraProject struct {
 	ID   string `json:"id"`
 	Key  string `json:"key"`
-	Name string `json:"name:`
+	Name string `json:"name"`
 	Self string `json:"self"` //url
 }
 
@@ -27,10 +27,10 @@ type IssueFields struct {
 	Priority       Priority `json:"priority"`
 	Created        string   `json:"created"`
 	Updated        string   `json:"updated"`
-	ResolutionDate string   `json:"resolutiondate"`
-	TimeSpent      int      `json:"timespent"`
-	Creator        User     `json:"creator"`
-	Assignee       User     `json:"assignee"`
+	ResolutionDate *string  `json:"resolutiondate"`
+	TimeSpent      *int32   `json:"timespent"`
+	Creator        *User    `json:"creator"`
+	Assignee       *User    `json:"assignee"`
 }
 
 type Status struct {
@@ -52,8 +52,8 @@ type ChangeLog struct {
 }
 
 type History struct {
-	Сreated string `json:"created"`
-	Items   []Item `json:"items"`
+	Created string        `json:"created"`
+	Items   []HistoryItem `json:"items"`
 }
 
 type HistoryItem struct {
