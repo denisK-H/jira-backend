@@ -6,24 +6,34 @@ import (
 	"net/http"
 
 	_ "github.com/lib/pq"
-	"github.com/gorilla/mux"
 
-	"github.com/JingolBong/jira-connector/internal/db"
-	"github.com/JingolBong/jira-connector/jira-backend/internal/handler"
-	"github.com/JingolBong/jira-connector/jira-backend/internal/repository"
-	"github.com/JingolBong/jira-connector/jira-backend/internal/service"
+	"hse-2026-golang-project/internal/db"
+	"hse-2026-golang-project/jira-backend/internal/app"
+	"hse-2026-golang-project/jira-backend/internal/handler"
+	"hse-2026-golang-project/jira-backend/internal/repository"
+	"hse-2026-golang-project/jira-backend/internal/service"
 )
-// Инициализация сервера, DI зависимостей и регистрация роутов (TODO: конфиг, таймауты, логирование)
+
 func main() {
+	dsn := "postgres://pguser:pgpwd@localhost:5432/testdb?sslmode=disable"
 
-	dsn := "postgres://pguser:pgpwd@localhost:5432/testdb?sslmode=disable" // TODO: переиспользовать из dbConnection.go
-
-	writeDB, _ := sql.Open("postgres", dsn)
-	readDB, _ := sql.Open("postgres", dsn)
+	writeDB, err := sql.Open("postgres", dsn)
+	if err != nil {
+		log.Fatalf("open master db: %v", err)
+	}
+	readDB, err := sql.Open("postgres", dsn)
+	if err != nil {
+		log.Fatalf("open replica db: %v", err)
+	}
 
 	storage := db.NewStorage(writeDB, readDB)
+	defer func() {
+		if err := storage.Close(); err != nil {
+			log.Printf("close db connections: %v", err)
+		}
+	}()
 
-	repo := repository.NewProjectRepository(storage, writeDB)
+	repo := repository.NewProjectRepository(storage)
 
 	projectService := service.NewProjectService(repo)
 	issueService := service.NewIssueService(repo)
@@ -33,17 +43,8 @@ func main() {
 	issueHandler := handler.NewIssueHandler(issueService)
 	graphHandler := handler.NewGraphHandler(graphService)
 
-	r := mux.NewRouter()
-
-	r.HandleFunc("/api/v1/projects", projectHandler.GetAll).Methods("GET")
-	r.HandleFunc("/api/v1/projects/{id:[0-9]+}", projectHandler.Delete).Methods("DELETE")
-
-	r.HandleFunc("/api/v1/issues", issueHandler.GetByProject).Methods("GET")
-
-	r.HandleFunc("/api/v1/graph/make/{task:[0-9]+}", graphHandler.Make).Methods("POST")
-	r.HandleFunc("/api/v1/graph/get/{task:[0-9]+}", graphHandler.Get).Methods("GET")
-	r.HandleFunc("/api/v1/isAnalyzed", graphHandler.IsAnalyzed).Methods("GET")
+	router := app.NewRouter(projectHandler, issueHandler, graphHandler)
 
 	log.Println("Server started on :8000")
-	log.Fatal(http.ListenAndServe(":8000", r))
+	log.Fatal(http.ListenAndServe(":8000", router))
 }

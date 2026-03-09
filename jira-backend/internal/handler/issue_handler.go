@@ -1,10 +1,13 @@
 package handler
 
 import (
-	"encoding/json"
+	"errors"
 	"net/http"
+	"strings"
 
-	"github.com/JingolBong/jira-connector/jira-backend/internal/service"
+	"github.com/gorilla/mux"
+
+	"hse-2026-golang-project/jira-backend/internal/service"
 )
 
 type IssueHandler struct {
@@ -16,9 +19,32 @@ func NewIssueHandler(s *service.IssueService) *IssueHandler {
 }
 
 func (h *IssueHandler) GetByProject(w http.ResponseWriter, r *http.Request) {
+	key := projectKeyFromRequest(r)
+	if key == "" {
+		writeError(w, http.StatusBadRequest, "project key is required")
+		return
+	}
 
-	key := r.URL.Query().Get("project")
-	data, _ := h.service.GetByProjectKey(r.Context(), key)
+	data, err := h.service.GetByProjectKey(r.Context(), key)
+	if errors.Is(err, service.ErrProjectNotFound) {
+		writeError(w, http.StatusNotFound, "project not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load issues")
+		return
+	}
 
-	json.NewEncoder(w).Encode(data)
+	if err := writeJSON(w, http.StatusOK, data); err != nil {
+		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+	}
+}
+
+func projectKeyFromRequest(r *http.Request) string {
+	key := strings.TrimSpace(r.URL.Query().Get("project"))
+	if key != "" {
+		return key
+	}
+
+	return strings.TrimSpace(mux.Vars(r)["project"])
 }

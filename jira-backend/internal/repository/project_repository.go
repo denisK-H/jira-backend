@@ -2,18 +2,17 @@ package repository
 
 import (
 	"context"
-	"database/sql"
-	"github.com/JingolBong/jira-connector/internal/db"
-	"github.com/JingolBong/jira-connector/internal/models"
+
+	"hse-2026-golang-project/internal/db"
+	"hse-2026-golang-project/internal/models"
 )
 
 type ProjectRepository struct {
 	storage *db.Storage
-	writeDB *sql.DB
 }
 
-func NewProjectRepository(storage *db.Storage, writeDB *sql.DB) *ProjectRepository {
-	return &ProjectRepository{storage: storage, writeDB: writeDB}
+func NewProjectRepository(storage *db.Storage) *ProjectRepository {
+	return &ProjectRepository{storage: storage}
 }
 
 func (r *ProjectRepository) GetAll(ctx context.Context) ([]models.Project, error) {
@@ -24,9 +23,12 @@ func (r *ProjectRepository) GetByID(ctx context.Context, id int64) (*models.Proj
 	return r.storage.GetProjectByJiraID(ctx, id)
 }
 
+func (r *ProjectRepository) GetByKey(ctx context.Context, key string) (*models.Project, error) {
+	return r.storage.GetProjectByKey(ctx, key)
+}
+
 func (r *ProjectRepository) Delete(ctx context.Context, id int64) error {
-	_, err := r.writeDB.ExecContext(ctx, "DELETE FROM project WHERE jira_id=$1", id) // TODO: нормально переделать с контекстом и транзакцией
-	return err
+	return r.storage.DeleteProject(ctx, id)
 }
 
 func (r *ProjectRepository) GetIssuesByProject(ctx context.Context, id int64) ([]models.Issue, error) {

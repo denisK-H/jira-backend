@@ -1,12 +1,14 @@
 package handler
 
 import (
-	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 
 	"github.com/gorilla/mux"
-	"github.com/JingolBong/jira-connector/jira-backend/internal/service"
+
+	"hse-2026-golang-project/internal/db"
+	"hse-2026-golang-project/jira-backend/internal/service"
 )
 
 type ProjectHandler struct {
@@ -18,12 +20,33 @@ func NewProjectHandler(s *service.ProjectService) *ProjectHandler {
 }
 
 func (h *ProjectHandler) GetAll(w http.ResponseWriter, r *http.Request) {
-	data, _ := h.service.GetAll(r.Context())
-	json.NewEncoder(w).Encode(data)
+	data, err := h.service.GetAll(r.Context())
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load projects")
+		return
+	}
+
+	if err := writeJSON(w, http.StatusOK, data); err != nil {
+		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+	}
 }
 
 func (h *ProjectHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	id, _ := strconv.ParseInt(mux.Vars(r)["id"], 10, 64)
-	h.service.Delete(r.Context(), id)
+	id, err := strconv.ParseInt(mux.Vars(r)["id"], 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid project id")
+		return
+	}
+
+	err = h.service.Delete(r.Context(), id)
+	if errors.Is(err, db.ErrNotFound) {
+		writeError(w, http.StatusNotFound, "project not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to delete project")
+		return
+	}
+
 	w.WriteHeader(http.StatusNoContent)
 }
